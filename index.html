@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BloodBank – Management System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0d0d12; --surface:#13111a; --surface2:#1a1525; --card:#1c1826;
+      --border:#2a2035; --red:#e53e3e; --red-dark:#9b1c1c; --red-light:#fc8181;
+      --text:#f0e6e6; --muted:#8b7d7d; --radius:12px;
+    }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    /* NAV */
+    nav {
+      background:linear-gradient(90deg,#7b0000,#c0392b);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 2rem; height:58px; position:sticky; top:0; z-index:100;
+    }
+    .logo { font-size:1.2rem; font-weight:800; color:#fff; display:flex; align-items:center; gap:.5rem; }
+    .logo span { color:#fca5a5; }
+    .nav-links { display:flex; gap:.3rem; list-style:none; }
+    .nav-links li a {
+      text-decoration:none; color:rgba(255,255,255,.8); font-size:.85rem; font-weight:500;
+      padding:.45rem 1rem; border-radius:8px; transition:background .15s,color .15s; cursor:pointer;
+    }
+    .nav-links li a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .nav-links li a.active { background:rgba(255,255,255,.22); color:#fff; font-weight:700; }
+    .btn-team {
+      background:transparent; border:1.5px solid rgba(255,255,255,.5); color:#fff;
+      font-size:.8rem; font-weight:600; padding:.4rem .9rem; border-radius:8px; cursor:pointer;
+    }
+    .btn-team:hover { background:rgba(255,255,255,.1); }
+
+    /* PAGES */
+    .page { display:none; padding:2rem; max-width:1300px; margin:0 auto; }
+    .page.active { display:block; }
+
+    /* HERO */
+    .hero {
+      background:radial-gradient(ellipse at center,#3d0000 0%,#1a0000 60%,#0d0000 100%);
+      border:1px solid #3d1515; border-radius:var(--radius);
+      text-align:center; padding:3rem 2rem 2.5rem; margin-bottom:2.5rem;
+    }
+    .hero h1 { font-size:2.8rem; font-weight:800; color:#fc8181; margin-bottom:.6rem; letter-spacing:-.5px; }
+    .hero p  { color:var(--muted); font-size:.95rem; margin-bottom:2rem; }
+    .hero-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; max-width:860px; margin:0 auto; }
+    .hero-stat {
+      background:rgba(0,0,0,.4); border:1px solid #3d1515; border-radius:10px;
+      padding:1.3rem 1rem; text-align:center;
+    }
+    .hero-stat .val { font-size:2rem; font-weight:800; color:#fc8181; }
+    .hero-stat .lbl { font-size:.78rem; color:var(--muted); margin-top:.3rem; }
+
+    .section-title { font-size:1.3rem; font-weight:700; color:var(--red-light); margin-bottom:1.2rem; }
+
+    /* BLOOD GRID */
+    .blood-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2.5rem; }
+    .blood-card {
+      background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+      padding:2rem 1rem; text-align:center;
+    }
+    .blood-type { font-size:2.2rem; font-weight:800; margin-bottom:.4rem; }
+    .bt-apos{color:#fc8181;} .bt-aneg{color:#f87171;} .bt-bpos{color:#818cf8;}
+    .bt-bneg{color:#a78bfa;} .bt-abpos{color:#34d399;} .bt-abneg{color:#6ee7b7;}
+    .bt-opos{color:#fbbf24;} .bt-oneg{color:#fcd34d;}
+    .blood-units { font-size:1.4rem; font-weight:700; margin-bottom:.2rem; }
+    .blood-units span { font-size:.8rem; font-weight:400; color:var(--muted); }
+    .stock-badge {
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.3rem .85rem; border-radius:20px; font-size:.75rem; font-weight:600; margin-top:.6rem;
+      border:1px solid #3d1515; background:rgba(120,0,0,.25); color:#fc8181;
+    }
+    .stock-badge.ok { border-color:#14532d; background:rgba(0,100,40,.2); color:#4ade80; }
+    .stock-dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+    /* TABLE */
+    .table-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .table-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.1rem 1.5rem; border-bottom:1px solid var(--border);
+    }
+    .table-header h2 { font-size:1rem; font-weight:700; color:var(--red-light); display:flex; align-items:center; gap:.5rem; }
+    table { width:100%; border-collapse:collapse; }
+    thead { background:linear-gradient(90deg,#7b0000,#c0392b); }
+    thead th { padding:.85rem 1.5rem; text-align:left; font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:rgba(255,255,255,.9); }
+    tbody tr { border-bottom:1px solid var(--border); transition:background .12s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--surface2); }
+    td { padding:.9rem 1.5rem; font-size:.875rem; vertical-align:middle; }
+    .empty-state { text-align:center; padding:4rem 1rem; color:var(--muted); }
+    .empty-state .emoji { font-size:2.5rem; margin-bottom:.8rem; }
+
+    /* BADGES */
+    .badge { display:inline-block; padding:.25rem .7rem; border-radius:20px; font-size:.75rem; font-weight:600; }
+    .badge-red    { background:rgba(120,0,0,.3);    color:#fc8181; border:1px solid #3d1515; }
+    .badge-green  { background:rgba(0,100,40,.2);   color:#4ade80; border:1px solid #14532d; }
+    .badge-yellow { background:rgba(120,90,0,.3);   color:#fcd34d; border:1px solid #6b5200; }
+    .badge-blue   { background:rgba(30,50,120,.3);  color:#818cf8; border:1px solid #1e3180; }
+
+    /* BUTTONS */
+    .btn { display:inline-flex; align-items:center; gap:.35rem; font-size:.8rem; font-weight:600; padding:.45rem .9rem; border-radius:8px; cursor:pointer; border:none; transition:opacity .15s; }
+    .btn:hover { opacity:.85; }
+    .btn-red { background:var(--red); color:#fff; }
+    .btn-outline-red { background:transparent; border:1.5px solid var(--red); color:var(--red-light); }
+    .btn-sm { padding:.3rem .65rem; font-size:.75rem; border-radius:6px; }
+
+    /* INV GRID */
+    .inv-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
+    .inv-card {
+      background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+      padding:1.5rem; text-align:center;
+    }
+    .inv-type { font-size:1.8rem; font-weight:800; margin-bottom:.3rem; }
+    .inv-units { font-size:1.1rem; font-weight:700; color:var(--text); }
+    .inv-units small { color:var(--muted); font-weight:400; font-size:.75rem; }
+
+    /* MODAL */
+    .modal-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.75);
+      z-index:200; align-items:center; justify-content:center;
+    }
+    .modal-overlay.open { display:flex; }
+    .modal {
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+      padding:2rem; width:100%; max-width:480px;
+    }
+    .modal h3 { font-size:1.1rem; font-weight:700; color:var(--red-light); margin-bottom:1.2rem; }
+    .form-group { margin-bottom:1rem; }
+    .form-group label { display:block; font-size:.8rem; font-weight:600; color:var(--muted); margin-bottom:.4rem; }
+    .form-group input, .form-group select {
+      width:100%; background:var(--card); border:1px solid var(--border); border-radius:8px;
+      color:var(--text); padding:.6rem .9rem; font-size:.875rem; outline:none; font-family:inherit;
+    }
+    .form-group input:focus, .form-group select:focus { border-color:var(--red); }
+    .form-group select option { background:var(--card); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+    .modal-actions { display:flex; gap:.7rem; justify-content:flex-end; margin-top:1.4rem; }
+
+    /* PAGE HEADER */
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
+    .page-header h2 { font-size:1.5rem; font-weight:800; color:var(--red-light); display:flex; align-items:center; gap:.5rem; }
+
+    @media(max-width:900px){
+      .blood-grid{grid-template-columns:repeat(2,1fr);}
+      .hero-stats{grid-template-columns:repeat(2,1fr);}
+      .inv-grid{grid-template-columns:repeat(2,1fr);}
+    }
+    @media(max-width:600px){
+      .blood-grid{grid-template-columns:1fr 1fr;}
+      .hero h1{font-size:1.8rem;}
+      .nav-links{display:none;}
+      .page{padding:1rem;}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🩸 <span>Blood</span>Bank</div>
+  <ul class="nav-links">
+    <li><a onclick="showPage('dashboard')" class="active" id="nav-dashboard">Dashboard</a></li>
+    <li><a onclick="showPage('inventory')" id="nav-inventory">Inventory</a></li>
+    <li><a onclick="showPage('donors')"    id="nav-donors">Donors</a></li>
+    <li><a onclick="showPage('requests')"  id="nav-requests">Requests</a></li>
+    <li><a onclick="showPage('emergency')" id="nav-emergency">Emergency</a></li>
+  </ul>
+  <button class="btn-team">👥 Our Team</button>
+</nav>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="hero">
+    <h1>Blood Bank Management</h1>
+    <p>Real-time blood inventory and donation management system</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="val" id="stat-donors">2</div><div class="lbl">Total Donors</div></div>
+      <div class="hero-stat"><div class="val" id="stat-requests">0</div><div class="lbl">Total Requests</div></div>
+      <div class="hero-stat"><div class="val" id="stat-pending">0</div><div class="lbl">Pending Requests</div></div>
+      <div class="hero-stat"><div class="val" id="stat-emergency">0</div><div class="lbl">Emergency Contacts</div></div>
+    </div>
+  </div>
+
+  <div class="section-title">🩸 Blood Inventory Overview</div>
+  <div class="blood-grid">
+    <div class="blood-card"><div class="blood-type bt-apos">A+</div><div class="blood-units" id="inv-apos">0 <span>units</span></div><span class="stock-badge" id="sb-apos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="blood-card"><div class="blood-type bt-aneg">A-</div><div class="blood-units" id="inv-aneg">0 <span>units</span></div><span class="stock-badge" id="sb-aneg"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="blood-card"><div class="blood-type bt-bpos">B+</div><div class="blood-units" id="inv-bpos">0 <span>units</span></div><span class="stock-badge" id="sb-bpos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="blood-card"><div class="blood-type bt-bneg">B-</div><div class="blood-units" id="inv-bneg">0 <span>units</span></div><span class="stock-badge" id="sb-bneg"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="blood-card"><div class="blood-type bt-abpos">AB+</div><div class="blood-units" id="inv-abpos">0 <span>units</span></div><span class="stock-badge" id="sb-abpos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="blood-card"><div class="blood-type bt-abneg">AB-</div><div class="blood-units" id="inv-abneg">0 <span>units</span></div><span class="stock-badge" id="sb-abneg"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="blood-card"><div class="blood-type bt-opos">O+</div><div class="blood-units" id="inv-opos">0 <span>units</span></div><span class="stock-badge" id="sb-opos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="blood-card"><div class="blood-type bt-oneg">O-</div><div class="blood-units" id="inv-oneg">0 <span>units</span></div><span class="stock-badge" id="sb-oneg"><span class="stock-dot"></span>Out of Stock</span></div>
+  </div>
+
+  <div class="section-title">👤 Recent Donors</div>
+  <div class="table-card">
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Blood Group</th><th>Phone</th><th>Last Donated</th><th>Status</th></tr></thead>
+      <tbody id="dash-donors-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- INVENTORY -->
+<div class="page" id="page-inventory">
+  <div class="page-header">
+    <h2>🩸 Blood Inventory</h2>
+    <button class="btn btn-red" onclick="openModal('inv-modal')">+ Update Stock</button>
+  </div>
+  <div class="inv-grid">
+    <div class="inv-card"><div class="inv-type bt-apos">A+</div><div class="inv-units" id="icard-apos">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-apos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="inv-card"><div class="inv-type bt-aneg">A-</div><div class="inv-units" id="icard-aneg">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-aneg"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="inv-card"><div class="inv-type bt-bpos">B+</div><div class="inv-units" id="icard-bpos">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-bpos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="inv-card"><div class="inv-type bt-bneg">B-</div><div class="inv-units" id="icard-bneg">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-bneg"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="inv-card"><div class="inv-type bt-abpos">AB+</div><div class="inv-units" id="icard-abpos">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-abpos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="inv-card"><div class="inv-type bt-abneg">AB-</div><div class="inv-units" id="icard-abneg">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-abneg"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="inv-card"><div class="inv-type bt-opos">O+</div><div class="inv-units" id="icard-opos">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-opos"><span class="stock-dot"></span>Out of Stock</span></div>
+    <div class="inv-card"><div class="inv-type bt-oneg">O-</div><div class="inv-units" id="icard-oneg">0 <small>units</small></div><span class="stock-badge" style="margin-top:.5rem" id="isb-oneg"><span class="stock-dot"></span>Out of Stock</span></div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><h2>📋 Inventory Log</h2></div>
+    <table>
+      <thead><tr><th>Date</th><th>Blood Group</th><th>Units Added</th><th>Updated By</th></tr></thead>
+      <tbody id="inv-log-body"><tr><td colspan="4"><div class="empty-state"><div class="emoji">🩸</div>No inventory records yet.</div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DONORS -->
+<div class="page" id="page-donors">
+  <div class="page-header">
+    <h2>👤 Donors</h2>
+    <button class="btn btn-red" onclick="openModal('donor-modal')">+ Add Donor</button>
+  </div>
+  <div class="table-card">
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Blood Group</th><th>Age</th><th>Phone</th><th>Email</th><th>Last Donated</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="donors-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- REQUESTS -->
+<div class="page" id="page-requests">
+  <div class="page-header">
+    <h2>📋 Blood Requests</h2>
+    <button class="btn btn-red" onclick="openModal('req-modal')">+ New Request</button>
+  </div>
+  <div class="table-card">
+    <table>
+      <thead><tr><th>ID</th><th>Patient Name</th><th>Blood Group</th><th>Units</th><th>Hospital</th><th>Urgency</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="requests-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- EMERGENCY -->
+<div class="page" id="page-emergency">
+  <div class="page-header">
+    <h2>🚨 Emergency Contacts</h2>
+    <button class="btn btn-red" onclick="openModal('emg-modal')">+ Add Contact</button>
+  </div>
+  <div class="table-card">
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Relationship</th><th>Primary</th><th>Actions</th></tr></thead>
+      <tbody id="emergency-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="donor-modal">
+  <div class="modal">
+    <h3>➕ Add New Donor</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Full Name</label><input id="d-name" placeholder="John Doe"/></div>
+      <div class="form-group"><label>Age</label><input id="d-age" type="number" placeholder="25"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Blood Group</label>
+        <select id="d-blood"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+      </div>
+      <div class="form-group"><label>Phone</label><input id="d-phone" placeholder="+880..."/></div>
+    </div>
+    <div class="form-group"><label>Email</label><input id="d-email" placeholder="email@example.com"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline-red" onclick="closeModal('donor-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="addDonor()">Add Donor</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="req-modal">
+  <div class="modal">
+    <h3>📋 New Blood Request</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Patient Name</label><input id="r-name" placeholder="Patient name"/></div>
+      <div class="form-group"><label>Hospital</label><input id="r-hospital" placeholder="Hospital name"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Blood Group</label>
+        <select id="r-blood"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+      </div>
+      <div class="form-group"><label>Units Needed</label><input id="r-units" type="number" placeholder="1"/></div>
+    </div>
+    <div class="form-group"><label>Urgency</label>
+      <select id="r-urgency"><option>Normal</option><option>Urgent</option><option>Critical</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline-red" onclick="closeModal('req-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="addRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="emg-modal">
+  <div class="modal">
+    <h3>🚨 Add Emergency Contact</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Name</label><input id="e-name" placeholder="Full name"/></div>
+      <div class="form-group"><label>Phone</label><input id="e-phone" placeholder="+880..."/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input id="e-email" placeholder="email@example.com"/></div>
+      <div class="form-group"><label>Relationship</label><input id="e-rel" placeholder="Doctor / Family..."/></div>
+    </div>
+    <div class="form-group"><label>Primary Contact?</label>
+      <select id="e-primary"><option value="Yes">Yes</option><option value="No">No</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline-red" onclick="closeModal('emg-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="addEmergency()">Add Contact</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="inv-modal">
+  <div class="modal">
+    <h3>🩸 Update Blood Stock</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Blood Group</label>
+        <select id="i-blood"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+      </div>
+      <div class="form-group"><label>Units to Add</label><input id="i-units" type="number" placeholder="0"/></div>
+    </div>
+    <div class="form-group"><label>Updated By</label><input id="i-by" placeholder="Staff name"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline-red" onclick="closeModal('inv-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="updateStock()">Update Stock</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  donors: [
+    { id:'D001', name:'Rahim Uddin', blood:'B+', age:28, phone:'+8801711000001', email:'rahim@gmail.com', donated:'2024-12-10', status:'Active' },
+    { id:'D002', name:'Sadia Islam',  blood:'A+', age:24, phone:'+8801811000002', email:'sadia@gmail.com',  donated:'2025-01-15', status:'Active' }
+  ],
+  requests:  [],
+  emergency: [],
+  inventory: { 'A+':0,'A-':0,'B+':0,'B-':0,'AB+':0,'AB-':0,'O+':0,'O-':0 },
+  invLog: [],
+  counters: { donor:3, req:1, emg:1 }
+};
+
+const bgKey = g => g.replace('+','pos').replace('-','neg').toLowerCase();
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='dashboard') renderDashboard();
+  if(name==='donors')    renderDonors();
+  if(name==='requests')  renderRequests();
+  if(name==='emergency') renderEmergency();
+  if(name==='inventory') renderInventoryPage();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); })
+);
+
+function urgencyBadge(u) {
+  if(u==='Critical') return `<span class="badge badge-red">${u}</span>`;
+  if(u==='Urgent')   return `<span class="badge badge-yellow">${u}</span>`;
+  return `<span class="badge badge-blue">${u}</span>`;
+}
+function statusBadge(s) {
+  return s==='Active'
+    ? `<span class="badge badge-green">✓ ${s}</span>`
+    : `<span class="badge badge-red">${s}</span>`;
+}
+
+function updateInvDisplays() {
+  Object.keys(state.inventory).forEach(g => {
+    const k = bgKey(g);
+    const v = state.inventory[g];
+    const dash = document.getElementById('inv-'+k);
+    const dsb  = document.getElementById('sb-'+k);
+    const ic   = document.getElementById('icard-'+k);
+    const isb  = document.getElementById('isb-'+k);
+    const html = `${v} <span>units</span>`;
+    const badge = v>0
+      ? `<span class="stock-dot"></span>In Stock`
+      : `<span class="stock-dot"></span>Out of Stock`;
+    const cls = v>0 ? 'stock-badge ok' : 'stock-badge';
+    if(dash){ dash.innerHTML=html; }
+    if(dsb) { dsb.innerHTML=badge; dsb.className=cls; }
+    if(ic)  { ic.innerHTML=`${v} <small>units</small>`; }
+    if(isb) { isb.innerHTML=badge; isb.className=cls; isb.style.marginTop='.5rem'; }
+  });
+}
+
+function renderDashboard() {
+  document.getElementById('stat-donors').textContent    = state.donors.length;
+  document.getElementById('stat-requests').textContent  = state.requests.length;
+  document.getElementById('stat-pending').textContent   = state.requests.filter(r=>r.status==='Pending').length;
+  document.getElementById('stat-emergency').textContent = state.emergency.length;
+  updateInvDisplays();
+  const body = document.getElementById('dash-donors-body');
+  if(!state.donors.length) {
+    body.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="emoji">👤</div>No donors recorded yet.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = [...state.donors].reverse().slice(0,5).map(d=>`
+    <tr>
+      <td style="color:var(--muted);font-size:.82rem">${d.id}</td>
+      <td>${d.name}</td>
+      <td><span class="badge badge-red">${d.blood}</span></td>
+      <td>${d.phone}</td>
+      <td>${d.donated}</td>
+      <td>${statusBadge(d.status)}</td>
+    </tr>`).join('');
+}
+
+function renderDonors() {
+  const body = document.getElementById('donors-body');
+  if(!state.donors.length) {
+    body.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="emoji">👤</div>No donors added yet.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = state.donors.map(d=>`
+    <tr>
+      <td style="color:var(--muted);font-size:.82rem">${d.id}</td>
+      <td>${d.name}</td>
+      <td><span class="badge badge-red">${d.blood}</span></td>
+      <td>${d.age}</td>
+      <td>${d.phone}</td>
+      <td>${d.email}</td>
+      <td>${d.donated}</td>
+      <td>${statusBadge(d.status)}</td>
+      <td><button class="btn btn-outline-red btn-sm" onclick="deleteDonor('${d.id}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+function addDonor() {
+  const name=document.getElementById('d-name').value.trim();
+  if(!name) return;
+  const id='D'+String(state.counters.donor++).padStart(3,'0');
+  state.donors.push({
+    id, name,
+    blood: document.getElementById('d-blood').value,
+    age:   document.getElementById('d-age').value||'—',
+    phone: document.getElementById('d-phone').value.trim()||'—',
+    email: document.getElementById('d-email').value.trim()||'—',
+    donated: new Date().toISOString().slice(0,10),
+    status:'Active'
+  });
+  ['d-name','d-age','d-phone','d-email'].forEach(i=>document.getElementById(i).value='');
+  closeModal('donor-modal');
+  renderDonors();
+  document.getElementById('stat-donors').textContent = state.donors.length;
+}
+
+function deleteDonor(id) {
+  state.donors=state.donors.filter(d=>d.id!==id);
+  renderDonors();
+  document.getElementById('stat-donors').textContent = state.donors.length;
+}
+
+function renderRequests() {
+  const body=document.getElementById('requests-body');
+  if(!state.requests.length) {
+    body.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="emoji">📋</div>No requests submitted yet.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = state.requests.map(r=>`
+    <tr>
+      <td style="color:var(--muted);font-size:.82rem">${r.id}</td>
+      <td>${r.name}</td>
+      <td><span class="badge badge-red">${r.blood}</span></td>
+      <td>${r.units}</td>
+      <td>${r.hospital}</td>
+      <td>${urgencyBadge(r.urgency)}</td>
+      <td><span class="badge badge-yellow">${r.status}</span></td>
+      <td>${r.date}</td>
+      <td><button class="btn btn-outline-red btn-sm" onclick="deleteRequest('${r.id}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+function addRequest() {
+  const name=document.getElementById('r-name').value.trim();
+  if(!name) return;
+  const id='REQ'+String(state.counters.req++).padStart(3,'0');
+  state.requests.push({
+    id, name,
+    hospital: document.getElementById('r-hospital').value.trim()||'—',
+    blood:    document.getElementById('r-blood').value,
+    units:    document.getElementById('r-units').value||1,
+    urgency:  document.getElementById('r-urgency').value,
+    status:'Pending', date: new Date().toISOString().slice(0,10)
+  });
+  ['r-name','r-hospital','r-units'].forEach(i=>document.getElementById(i).value='');
+  closeModal('req-modal');
+  renderRequests();
+}
+
+function deleteRequest(id) {
+  state.requests=state.requests.filter(r=>r.id!==id);
+  renderRequests();
+}
+
+function renderEmergency() {
+  const body=document.getElementById('emergency-body');
+  if(!state.emergency.length) {
+    body.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="emoji">🚨</div>No emergency contacts added yet.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = state.emergency.map(e=>`
+    <tr>
+      <td style="color:var(--muted);font-size:.82rem">${e.id}</td>
+      <td>${e.name}</td>
+      <td>${e.phone}</td>
+      <td>${e.email}</td>
+      <td>${e.rel}</td>
+      <td>${e.primary==='Yes'?'<span class="badge badge-green">✓ Yes</span>':'<span class="badge badge-red">No</span>'}</td>
+      <td><button class="btn btn-outline-red btn-sm" onclick="deleteEmergency('${e.id}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+function addEmergency() {
+  const name=document.getElementById('e-name').value.trim();
+  if(!name) return;
+  const id='EC'+String(state.counters.emg++).padStart(3,'0');
+  state.emergency.push({
+    id, name,
+    phone:   document.getElementById('e-phone').value.trim()||'—',
+    email:   document.getElementById('e-email').value.trim()||'—',
+    rel:     document.getElementById('e-rel').value.trim()||'—',
+    primary: document.getElementById('e-primary').value
+  });
+  ['e-name','e-phone','e-email','e-rel'].forEach(i=>document.getElementById(i).value='');
+  closeModal('emg-modal');
+  renderEmergency();
+  document.getElementById('stat-emergency').textContent = state.emergency.length;
+}
+
+function deleteEmergency(id) {
+  state.emergency=state.emergency.filter(e=>e.id!==id);
+  renderEmergency();
+  document.getElementById('stat-emergency').textContent = state.emergency.length;
+}
+
+function renderInventoryPage() {
+  updateInvDisplays();
+  const body=document.getElementById('inv-log-body');
+  if(!state.invLog.length) {
+    body.innerHTML=`<tr><td colspan="4"><div class="empty-state"><div class="emoji">🩸</div>No inventory records yet.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = [...state.invLog].reverse().map(l=>`
+    <tr>
+      <td>${l.date}</td>
+      <td><span class="badge badge-red">${l.blood}</span></td>
+      <td>+${l.units}</td>
+      <td>${l.by}</td>
+    </tr>`).join('');
+}
+
+function updateStock() {
+  const blood=document.getElementById('i-blood').value;
+  const units=parseInt(document.getElementById('i-units').value)||0;
+  const by=document.getElementById('i-by').value.trim()||'Admin';
+  if(units<=0) return;
+  state.inventory[blood]+=units;
+  state.invLog.push({ blood, units, by, date: new Date().toISOString().slice(0,10) });
+  ['i-units','i-by'].forEach(i=>document.getElementById(i).value='');
+  closeModal('inv-modal');
+  renderInventoryPage();
+}
+
+// Init
+renderDashboard();
+renderDonors();
+renderRequests();
+renderEmergency();
+</script>
+</body>
+</html>
